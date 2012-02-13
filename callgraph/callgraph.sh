@@ -59,8 +59,8 @@ cd ${DBROOT}
 echo "$0: generating database...";
 (cat ${SCRIPTROOT}/schema.sql
 echo 'BEGIN TRANSACTION;'
-#find ${OBJDIR} -name '*.sql' -exec ${SCRIPTROOT}/fix_paths.pl ${SOURCEROOT} ${OBJDIR} {} \;|sort -u
-find ${OBJDIR} -name '*.sql' | xargs cat
+#find ${OBJDIR} -name '*.cg.sql' -exec ${SCRIPTROOT}/fix_paths.pl ${SOURCEROOT} ${OBJDIR} {} \;|sort -u
+find ${OBJDIR} -name '*.cg.sql' | xargs cat
 echo 'COMMIT;') > all.sql
 if ! eval "sqlite3 graph.sqlite < all.sql > error.log"; then
   echo "$0: sqlite3 db generation failed"; exit 1;

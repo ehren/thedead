@@ -1,5 +1,10 @@
+
 CREATE TABLE node(
   id INTEGER PRIMARY KEY,
+  returnType TEXT,
+  namespace TEXT,
+  type TEXT,
+  shortName TEXT,
   name TEXT,
   assemblerName TEXT,
   isPtr INTEGER,

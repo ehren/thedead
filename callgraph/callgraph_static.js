@@ -17,7 +17,7 @@ function input_end() {
   serial += serialize_virtuals(virtuals);
   serial += serialize_orphan_nodes(orphan_nodes);
   serial += serialize_escaping_nodes(escaping_nodes);
-  write_file(sys.aux_base_name + ".sql", serial);
+  write_file(sys.aux_base_name + ".cg.sql", serial);
 }
 
 function serialize_edges(edges) {
@@ -92,9 +92,17 @@ function serialize_integer(n) {
   return n ? n : 0;
 }
 
+function ensure_string(str) {
+  return (str || '');
+}
+
 function push_node(node) {
-  return 'INSERT INTO node (name, assemblerName, isPtr, isStatic, isMethod, isVirtual, isScriptable, visibility, visibilitySpecified, weight, loc) VALUES ("' +
+  return 'INSERT INTO node (name, returnType, namespace, type, shortName, assemblerName, isPtr, isStatic, isMethod, isVirtual, isScriptable, visibility, visibilitySpecified, weight, loc) VALUES ("' +
            serialize_full_method(node) + '", "' +
+           ensure_string(node.rt) + '", "' +
+           ensure_string(node.ns) + '", "' +
+           ensure_string(node.class) + '", "' +
+           ensure_string(node.method) + '", "' +
            node.assemblerName + '", ' +
            serialize_boolean(node.isPtr) + ', ' +
            serialize_boolean(node.isStatic) + ', ' +
