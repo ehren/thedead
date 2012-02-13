@@ -389,6 +389,8 @@ function process_tree(fn) {
     if (!init)
       continue;
     walk_tree(init, function (t) {
+      for (let addr in resolve_virtual_fn_addr_exprs(t))
+        edges.push({ "caller": caller, "callee": get_names(addr) });
       if (TREE_CODE(t) == FUNCTION_DECL)
         edges.push({ "caller": caller, "callee": get_names(t) });
     });
@@ -407,6 +409,9 @@ function process_tree(fn) {
       if (TREE_CODE(rhs) == FUNCTION_DECL)
         edges.push({ "caller": caller, "callee": get_names(rhs) });
     }
+
+    for (let addr in resolve_virtual_fn_addr_exprs(isn))
+      edges.push({ "caller": caller, "callee": get_names(addr) });
 
     if (gimple_code(isn) != GIMPLE_CALL)
       continue;
@@ -462,6 +467,8 @@ function process_tree_decl(decl) {
   walk_tree(init, function (t) {
     if (TREE_CODE(t) == FUNCTION_DECL)
       escaping_nodes.push(get_names(t));
+    for (let addr in resolve_virtual_fn_addr_exprs(t))
+      escaping_nodes.push(get_names(addr));
   });
 }
 
