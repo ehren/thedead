@@ -7,67 +7,75 @@ include('unstable/dehydra_types.js');
 const DEBUG = false;
 
 let edges = [];
-let orphan_nodes = [];
 let escaping_nodes = [];
 let virtuals = [];
 let weights = [];
 
 function input_end() {
-  let serial = serialize_edges(edges);
-  serial += serialize_virtuals(virtuals);
-  serial += serialize_orphan_nodes(orphan_nodes);
-  serial += serialize_escaping_nodes(escaping_nodes);
-  write_file(sys.aux_base_name + ".cg.sql", serial);
+  write_file(sys.aux_base_name + "." + filenum + ".cg.sql", output_cache);
 }
 
-function serialize_edges(edges) {
-  // array of edges, each edge looks like so:
-  // { caller: { fn: "fn", rt: "rt", loc: "file" },
-  //   callee: { fn: "fn", rt: "rt", loc: "file" } }
-  // serialize two nodes and an edge using sql INSERT statements.
-  let serial = "";
-  for each (edge in edges) {
-    serial += push_node(edge.caller);
-    serial += push_node(edge.callee);
-    serial += push_edge(edge);
-    serial += '\n';
+let filenum = 0;
+let output_cache = "";
+let hitcount = 0;
+const cache_max = 2048;
+
+function write_callgraph_file(str) {
+  output_cache += str + "\n";
+  if (hitcount < cache_max)
+    ++hitcount;
+  else {
+    write_file(sys.aux_base_name + "." + filenum + ".cg.sql", output_cache);
+    ++filenum;
+    output_cache = "";
+    hitcount = 0;
+    visited = [];
   }
+}
+
+function write_node(node) {
+  write_callgraph_file(serialize_node(node));
+}
+
+function write_edge(edge) {
+  write_callgraph_file(serialize_edge(edge));
+}
+
+function write_escaping_node(node) {
+  write_callgraph_file(serialize_escaping_node(node));
+}
+
+function write_virtual(virtual) {
+  write_callgraph_file(serialize_virtual(virtual));
+}
+
+function serialize_edge(edge) {
+  let serial = serialize_node(edge.caller);
+  serial += serialize_node(edge.callee);
+  serial += edge_string(edge);
+  serial += '\n';
   return serial;
 }
 
-function serialize_orphan_nodes(orphan_nodes) {
-  let serial = "";
-  for each (node in orphan_nodes) {
-    serial += push_node(node);
-    serial += '\n';
-  }
+function serialize_escaping_node(node) {
+  let serial = serialize_node(node);
+  serial    += 'UPDATE node SET addressHeld = 1 WHERE id = ' +
+               id_from_name_loc_subquery(node) + ';\n\n';
   return serial;
 }
 
-function serialize_escaping_nodes(escaping_nodes) {
+function serialize_virtual(tuple) {
   let serial = "";
-  for each (node in escaping_nodes) {
-    serial += push_node(node);
-    serial += 'UPDATE node SET addressHeld = 1 WHERE id = ' +
-              id_from_name_loc_subquery(node) + ';\n\n';
-  }
-  return serial;
-}
-
-function serialize_virtuals(virtuals) {
-  let serial = "";
-  for each (tuple in virtuals) {
-    serial += push_node(tuple.implementor);
-    serial += push_node(tuple.interface);
-    serial += 'INSERT INTO implementors (implementor, implementorID, interface, interfaceID, method, loc) VALUES ("' +
-                serialize_class(tuple.implementor) + '", ' +
-                id_from_name_loc_subquery(tuple.implementor) + ', "' +
-                serialize_class(tuple.interface) + '", ' +
-                id_from_name_loc_subquery(tuple.interface) + ', "' +
-                serialize_method(tuple.implementor) + '", "' +
-                tuple.interface.loc +
-              '");\n\n';
-  }
+  serial += serialize_node(tuple.implementor);
+  serial += serialize_node(tuple.interface);
+  serial += 'INSERT INTO implementors (implementor, implementorID, interface, interfaceID, method, loc) VALUES ("' +
+            serialize_class(tuple.implementor) + '", ' +
+            id_from_name_loc_subquery(tuple.implementor) + ', "' +
+            serialize_class(tuple.interface) + '", ' +
+            id_from_name_loc_subquery(tuple.interface) + ', "' +
+            serialize_method(tuple.implementor) + '", "' +
+            tuple.interface.loc +
+          '");\n\n';
   return serial;
 }
 
@@ -96,7 +104,7 @@ function ensure_string(str) {
   return (str || '');
 }
 
-function push_node(node) {
+function serialize_node(node) {
   return 'INSERT INTO node (name, returnType, namespace, type, shortName, assemblerName, isPtr, isStatic, isMethod, isVirtual, isScriptable, visibility, visibilitySpecified, weight, loc) VALUES ("' +
            serialize_full_method(node) + '", "' +
            ensure_string(node.rt) + '", "' +
@@ -121,7 +129,7 @@ function id_from_name_loc_subquery(node) {
         '" AND loc = "' + node.loc + '")';
 }
 
-function push_edge(edge) {
+function edge_string(edge) {
   return 'INSERT INTO edge (caller, callee) VALUES (' +
           id_from_name_loc_subquery(edge.caller) + ', ' +
           id_from_name_loc_subquery(edge.callee) +
@@ -363,7 +371,7 @@ function process_subclasses(c, implementor) {
 
       if (method_signatures_match(implementor, iface)) {
         let v = { "implementor": implementor, "interface": iface };
-        virtuals.push(v);
+        write_virtual(v);
       }
     }
 
@@ -398,9 +406,9 @@ function process_tree(fn) {
       continue;
     walk_tree(init, function (t) {
       for (let addr in resolve_virtual_fn_addr_exprs(t))
-        edges.push({ "caller": caller, "callee": get_names(addr) });
+        write_edge({ "caller": caller, "callee": get_names(addr) });
       if (TREE_CODE(t) == FUNCTION_DECL)
-        edges.push({ "caller": caller, "callee": get_names(t) });
+        write_edge({ "caller": caller, "callee": get_names(t) });
     });
   }
 
@@ -415,11 +423,11 @@ function process_tree(fn) {
         continue;
       rhs = TREE_OPERAND(rhs, 0);
       if (TREE_CODE(rhs) == FUNCTION_DECL)
-        edges.push({ "caller": caller, "callee": get_names(rhs) });
+        write_edge({ "caller": caller, "callee": get_names(rhs) });
     }
 
     for (let addr in resolve_virtual_fn_addr_exprs(isn))
-      edges.push({ "caller": caller, "callee": get_names(addr) });
+      write_edge({ "caller": caller, "callee": get_names(addr) });
 
     if (gimple_code(isn) != GIMPLE_CALL)
       continue;
@@ -428,7 +436,7 @@ function process_tree(fn) {
       throw new Error("unresolvable function " + gs_display(isn));
 
     // serialize the call
-    edges.push({ caller: caller, callee: get_names(callee) });
+    write_edge({ caller: caller, callee: get_names(callee) });
 
     // look for function addresses in the args of the call
     for (let arg in gimple_call_arg_iterator(isn)) {
@@ -436,7 +444,7 @@ function process_tree(fn) {
         continue;
       arg = TREE_OPERAND(arg, 0);
       if (TREE_CODE(arg) == FUNCTION_DECL)
-        edges.push({ "caller": caller, "callee": get_names(arg) });
+        write_edge({ "caller": caller, "callee": get_names(arg) });
     }
     edge_pushed = true;
   }
@@ -444,7 +452,7 @@ function process_tree(fn) {
 
   // ensure registration of uncalled functions that make no calls
   if (!edge_pushed) {
-    orphan_nodes.push(caller);
+    write_node(caller);
   }
 }
 
@@ -474,9 +482,9 @@ function process_tree_decl(decl) {
     return;
   walk_tree(init, function (t) {
     if (TREE_CODE(t) == FUNCTION_DECL)
-      escaping_nodes.push(get_names(t));
+      write_escaping_node(get_names(t));
     for (let addr in resolve_virtual_fn_addr_exprs(t))
-      escaping_nodes.push(get_names(addr));
+      write_escaping_node(get_names(addr));
   });
 }
 
