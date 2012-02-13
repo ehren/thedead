@@ -1,0 +1,5 @@
+data/callgraph_static.js.i
+data/mozconfig.i
+data/callgraph.sh.i
+data/schema.sql.i
+data/sqltodot.js.i
