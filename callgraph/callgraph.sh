@@ -53,18 +53,8 @@ fi
 rm -rf ${DBBACKUP}
 mv ${DBROOT} ${DBBACKUP}
 mkdir ${DBROOT}
-cd ${DBROOT}
 
-# merge and de-dupe sql scripts, feed into sqlite
-echo "$0: generating database...";
-(cat ${SCRIPTROOT}/schema.sql
-echo 'BEGIN TRANSACTION;'
-#find ${OBJDIR} -name '*.cg.sql' -exec ${SCRIPTROOT}/fix_paths.pl ${SOURCEROOT} ${OBJDIR} {} \;|sort -u
-find ${OBJDIR} -name '*.cg.sql' | xargs cat
-echo 'COMMIT;') > all.sql
-if ! eval "sqlite3 graph.sqlite < all.sql > error.log"; then
-  echo "$0: sqlite3 db generation failed"; exit 1;
-fi
+${SCRIPTROOT}/generatedb.sh ${OBJDIR} ${DBROOT} ${SCRIPTROOT}/schema.sql
 
 # generate dot file from edges
 #${DISTBIN}/run-mozilla.sh ${DISTBIN}/xpcshell -v 180 ${SCRIPTROOT}/sqltodot.js ${DBROOT}/graph.sqlite ${DBROOT}/graph.dot ${MOZCENTRAL}
