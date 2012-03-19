@@ -33,12 +33,13 @@
         return sortStripped(y, x, singletonVerbiage);
       };
 
-
       $(document).ready(function() {
         var oTable = $('#unused').dataTable({
           "bProcessing": true,
           "sAjaxSource": "dead.json",
-          "aLengthMenu": [10, 25, 50, 100, 1000],
+          "aLengthMenu": [[10, 25, 50, 100, 1000, -1], [10, 25, 50, 100, 1000, "All"]],
+          "iDisplayLength": 25,
+          "aaSorting": [[1, 'desc']],
           "aoColumnDefs": [
             {
               "bSearchable": false,
@@ -53,7 +54,7 @@
             },
             {
               "fnRender": function (o, val) {
-                  return '<a href="'o.aData[0] + '.svg">' + val + '</a>';
+                  return '<a href="' + o.aData[0] + '.svg">' + val + '</a>';
               },
               "aTargets": [2]
             }
@@ -94,8 +95,7 @@
       </tfoot>
     </table>
     <br/>
-    <br/>
     <h5>Green nodes have <a href="http://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html">visibility ("hidden")</a>. Red nodes have anything else.</h5>
-    <a href="https://github.com/ehren/thedead">source</a>
+    <h5><a href="https://github.com/ehren/thedead">source</a></h5>
   </body>
 </html>
