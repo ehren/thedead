@@ -1,0 +1,77 @@
+Requirements:
+
+GCC 4.5
+
+Dehydra https://developer.mozilla.org/En/Dehydra/
+
+Python 2.6
+
+sqlite3
+
+--------
+
+Instructions:
+
+1) To properly account for function addresses stored in global variables you must use a patched GCC 4.5 for building and using Dehydra. Failing to do so will result in false positives if your project contains global-scope assignments of function declarations to variables.
+
+Build patched GCC:
+
+# obtain GCC 4.5.3 (see http://gcc.gnu.org/mirrors.html for alternate mirrors)
+wget http://www.netgull.com/gcc/releases/gcc-4.5.3/gcc-4.5.3.tar.bz2
+tar -jxvf gcc-4.3.0.tar.bz2
+
+# apply PLUGIN_FINISH_DECL patch
+cd gcc-4.5.3
+patch -p0 < /path/to/thedead/finish_decl.diff
+
+# build GCC
+cd ..
+mkdir gcc-objdir
+mkdir gcc-dist
+cd gcc-objdir
+../gcc-4.5.3/configure --disable-bootstrap --enable-languages=c,c++ --prefix=/absolute/path/to/gcc-dist
+make
+make install
+
+2) Install Dehydra:
+
+(follow instructions at https://developer.mozilla.org/En/Dehydra/Installing_Dehydra using newly built GCC)
+
+3) Run Callgraph on your project:
+
+# Override CXX and CC and build your profect. For example:
+
+export CXX="path/to/gcc-dist/bin/g++ -fplugin=path/to/dehydra/gcc_treehydra.so -fplugin-arg-gcc_treehydra-script=/path/to/thedead/callgraph/callgraph_static.js"
+export CC="path/to/gcc-dist/bin/gcc -fplugin=path/to/dehydra/gcc_treehydra.so -fplugin-arg-gcc_treehydra-script=/path/to/thedead/callgraph/callgraph_static.js"
+
+make
+
+4) Generate Callgraph database 
+
+mkdir db
+/path/to/thedead/callgraph/generatedb.sh /path/to/objdir/of/your/project db /path/to/thedead/callgraph/schema.sql
+
+(This produces a single sqlite database, graph.sqlite, located in the db directory. You may want to create a backup of this file.)
+
+5) Run post processing scripts:
+
+cd /path/to/thedead
+
+mkdir output
+
+./calcalive.py /path/to/graph.sqlite &&
+./groupdead.py /path/to/graph.sqlite &&
+./presentdead.py /path/to/graph.sqlite "/path/to/strip/from/locations/" output "node search URL prefix" "node search URL postfix"
+
+# copy static html stuff
+cp -R media output
+cp dead.html output
+
+6) View the results:
+
+cd output
+firefox dead.html
+
+--------
+
+Note that thedead will flag, as unused, functions only called by asm (inline or otherwise) as well as functions only called via dlsym. The dlsym case is mitigated by the 'Transitively Hidden' column. Keep in mind however that the set of exported functions is not necessarilly isomorphic to the set of functions seen by GCC as not having visibility("hidden"). This is because extra junk can be passed to ld etc.

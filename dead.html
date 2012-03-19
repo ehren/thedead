@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <link rel="shortcut icon" type="image/ico" href="http://www.datatables.net/media/images/favicon.ico" />
+
+    <title>The Dead</title>
+    <style type="text/css" title="currentStyle">
+      @import "media/css/demo_page.css";
+      @import "media/css/demo_table.css";
+    </style>
+    <script type="text/javascript" src="media/jquery.js"></script>
+    <script type="text/javascript" src="media/jquery.dataTables.js"></script>
+    <script type="text/javascript" charset="utf-8">
+      var singletonVerbiage = ' (singletons)';
+
+      function sortStripped(x, y, toStrip) {
+        if (typeof x == 'string') {
+          x = Number(x.replace(toStrip, ''));
+        }
+        if (typeof y == 'string') {
+          y = Number(y.replace(toStrip, ''));
+        }
+
+        return ((x < y) ? -1 : ((x > y) ?  1 : 0));
+      }
+
+      jQuery.fn.dataTableExt.oSort['skip-verbiage-asc']  = function(x, y) {
+        return sortStripped(x, y, singletonVerbiage);
+      };
+
+      jQuery.fn.dataTableExt.oSort['skip-verbiage-desc'] = function(x, y) {
+        return sortStripped(y, x, singletonVerbiage);
+      };
+
+
+      $(document).ready(function() {
+        var oTable = $('#unused').dataTable({
+          "bProcessing": true,
+          "sAjaxSource": "dead.json",
+          "aLengthMenu": [10, 25, 50, 100, 1000],
+          "aoColumnDefs": [
+            {
+              "bSearchable": false,
+              "bVisible": false,
+              "aTargets": [0, 4]
+            },
+            {
+              "fnRender": function (o, val) {
+                  return val + (o.aData[4] ? singletonVerbiage : '');
+              },
+              "aTargets": [1]
+            },
+            {
+              "fnRender": function (o, val) {
+                  return '<a href="'o.aData[0] + '.svg">' + val + '</a>';
+              },
+              "aTargets": [2]
+            }
+          ],
+          "aoColumns": [
+            null,
+            { "sType": 'skip-verbiage' },
+            null,
+            null,
+            null,
+          ]
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <table cellpadding="0" cellspacing="0" border="0" class="display" id="unused">
+      <thead>
+        <tr>
+          <th>ComponentID</th>
+          <th width="5%">Size</th>
+          <th width="90%">Locations</th>
+          <th width="5%">Transitively Hidden</th>
+          <th>Singletons</th>
+        </tr>
+      </thead>
+      <tbody>
+
+      </tbody>
+      <tfoot>
+        <tr>
+          <th>ComponentID</th>
+          <th>Size</th>
+          <th>Locations</th>
+          <th>Transitively Hidden</th>
+          <th>Singletons</th>
+        </tr>
+      </tfoot>
+    </table>
+    <br/>
+    <br/>
+    <h5>Green nodes have <a href="http://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html">visibility ("hidden")</a>. Red nodes have anything else.</h5>
+    <a href="https://github.com/ehren/thedead">source</a>
+  </body>
+</html>
