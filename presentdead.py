@@ -63,18 +63,6 @@ def num_hidden(cursor, componentID):
     return hidden
 
 def generate_search(cursor, locprefix, directory):
-#    cursor.execute("SELECT componentID, size, group_concat(replace(loc, '%s', ''), ', ') FROM unused u JOIN node n ON (u.id = n.id) GROUP BY componentID" % (locprefix,));
-
-#    cursor.execute("SELECT componentID, size, group_concat(replace(loc, '%s', ''), ', ') 
-#                    FROM 
-#                    (
-#                     SELECT distinct componentID, size, loc
-#                     FROM
-#                     unused u 
-#                     JOIN node n ON (u.id = n.id)
-#                    )
-#                    GROUP BY componentID" % (locprefix,));
-
     print('generating search...')
 
     components = []

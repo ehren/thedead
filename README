@@ -4,7 +4,7 @@ GCC 4.5
 
 Dehydra https://developer.mozilla.org/En/Dehydra/
 
-Python 2.6
+Python >= 2.6
 
 sqlite3
 
@@ -18,7 +18,7 @@ Build patched GCC:
 
 # obtain GCC 4.5.3 (see http://gcc.gnu.org/mirrors.html for alternate mirrors)
 wget http://www.netgull.com/gcc/releases/gcc-4.5.3/gcc-4.5.3.tar.bz2
-tar -jxvf gcc-4.3.0.tar.bz2
+tar -jxvf gcc-4.5.3.tar.bz2
 
 # apply PLUGIN_FINISH_DECL patch
 cd gcc-4.5.3

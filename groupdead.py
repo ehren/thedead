@@ -14,7 +14,6 @@ def groupdead(cursor):
         print "id: %d, %d / %d" %(id, i, count)
         i = i + 1
 
-        sets_with_node = [] 
         node_set = set([id])
         for s in components:
             if id in s:
