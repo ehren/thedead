@@ -12,9 +12,13 @@ sqlite3
 
 Instructions:
 
-1) To properly account for function addresses stored in global variables you must use a patched GCC 4.5 for building and using Dehydra. Failing to do so will result in false positives if your project contains global-scope assignments of function declarations to variables.
+# 1) Obtain project:
 
-Build patched GCC:
+git clone https://github.com/ehren/thedead.git
+
+export THEDEAD=$PWD/thedead
+
+# 2) Build patched GCC. To properly account for function addresses stored in global variables you must use a patched GCC 4.5 for building and using Dehydra. Failing to do so will result in false positives if your project contains global-scope assignments of function declarations to variables.
 
 # obtain GCC 4.5.3 (see http://gcc.gnu.org/mirrors.html for alternate mirrors)
 wget http://www.netgull.com/gcc/releases/gcc-4.5.3/gcc-4.5.3.tar.bz2
@@ -22,52 +26,60 @@ tar -jxvf gcc-4.5.3.tar.bz2
 
 # apply PLUGIN_FINISH_DECL patch
 cd gcc-4.5.3
-patch -p0 < /path/to/thedead/finish_decl.diff
+patch -p0 < $THEDEAD/finish_decl.diff
 
 # build GCC
 cd ..
 mkdir gcc-objdir
 mkdir gcc-dist
+export GCCDIST=$PWD/gcc-dist
+
 cd gcc-objdir
-../gcc-4.5.3/configure --disable-bootstrap --enable-languages=c,c++ --prefix=/absolute/path/to/gcc-dist
+../gcc-4.5.3/configure --disable-bootstrap --enable-languages=c,c++ --prefix=$GCCDIST
 make
 make install
 
-2) Install Dehydra:
+# 3) Install Dehydra:
 
-(follow instructions at https://developer.mozilla.org/En/Dehydra/Installing_Dehydra using newly built GCC)
+# (follow instructions at https://developer.mozilla.org/En/Dehydra/Installing_Dehydra using newly patched and built GCC)
 
-3) Run Callgraph on your project:
+export DEHYDRA=$PWD/dehydra
+
+# 4) Run Callgraph on your project (see also https://developer.mozilla.org/en/Developer_Guide/Callgraph):
 
 # Override CXX and CC and build your profect. For example:
 
-export CXX="path/to/gcc-dist/bin/g++ -fplugin=path/to/dehydra/gcc_treehydra.so -fplugin-arg-gcc_treehydra-script=/path/to/thedead/callgraph/callgraph_static.js"
-export CC="path/to/gcc-dist/bin/gcc -fplugin=path/to/dehydra/gcc_treehydra.so -fplugin-arg-gcc_treehydra-script=/path/to/thedead/callgraph/callgraph_static.js"
+export CXX="$GCCDIST/bin/g++ -fplugin=$DEHYDRA/gcc_treehydra.so -fplugin-arg-gcc_treehydra-script=$THEDEAD/callgraph/callgraph_static.js"
+export CC="$GCCDIST/bin/gcc -fplugin=$DEHYDRA/dehydra/gcc_treehydra.so -fplugin-arg-gcc_treehydra-script=$THEDEAD/callgraph/callgraph_static.js"
 
 make
 
-4) Generate Callgraph database 
+# This will produce a number of files for each compilation unit containing SQL that will be used to build the database.
+
+export OBJDIR=$PWD
+
+# 5) Generate Callgraph database 
 
 mkdir db
-/path/to/thedead/callgraph/generatedb.sh /path/to/objdir/of/your/project db /path/to/thedead/callgraph/schema.sql
+export DBDIR=$PWD/db
 
-(This produces a single sqlite database, graph.sqlite, located in the db directory. You may want to create a backup of this file.)
+$THEDEAD/callgraph/generatedb.sh $OBJDIR $DBDIR $THEDEAD/callgraph/schema.sql
 
-5) Run post processing scripts:
+# (This produces a single sqlite database, graph.sqlite, located in the db directory. You may want to create a backup of this file.)
 
-cd /path/to/thedead
+# 6) Run post processing scripts:
 
 mkdir output
 
-./calcalive.py /path/to/graph.sqlite &&
-./groupdead.py /path/to/graph.sqlite &&
-./presentdead.py /path/to/graph.sqlite "/path/to/strip/from/locations/" output "node search URL prefix" "node search URL postfix"
+$THEDEAD/calcalive.py $DBDIR/graph.sqlite &&
+./groupdead.py $DBDIR/graph.sqlite &&
+./presentdead.py $DBDIR/graph.sqlite "/path/to/strip/from/locations/" output "node search URL prefix" "node search URL postfix"
 
 # copy static html stuff
-cp -R media output
-cp dead.html output
+cp -R $THEDEAD/media output
+cp $THEDEAD/dead.html output
 
-6) View the results:
+# 7) View the results (a static html page utilizing DataTables and svg dot graphs):
 
 cd output
 firefox dead.html
