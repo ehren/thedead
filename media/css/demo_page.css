@@ -80,6 +80,12 @@
 	text-decoration: underline;
 }
 
+#dt_example a:visited {
+	color: #8D76DC;
+	text-decoration: none;
+}
+
+
 #dt_example ul {
 	color: #4E6CA3;
 }

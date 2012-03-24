@@ -1,3 +1,9 @@
+About:
+
+Tool to find and suitably present unused [virtual] [member] functions. Based upon Callgraph: https://developer.mozilla.org/en/Developer_Guide/Callgraph
+
+--------
+
 Requirements:
 
 GCC 4.5
@@ -47,6 +53,10 @@ export DEHYDRA=$PWD/dehydra
 
 # 4) Run Callgraph on your project (see also https://developer.mozilla.org/en/Developer_Guide/Callgraph):
 
+# when building mozilla-central, simply run $THEDEAD/callgraph/callgraph.sh $GCCDIST/bin $DEHYDRA
+
+# Otherwise:
+
 # Override CXX and CC and build your profect. For example:
 
 export CXX="$GCCDIST/bin/g++ -fplugin=$DEHYDRA/gcc_treehydra.so -fplugin-arg-gcc_treehydra-script=$THEDEAD/callgraph/callgraph_static.js"
@@ -72,8 +82,8 @@ $THEDEAD/callgraph/generatedb.sh $OBJDIR $DBDIR $THEDEAD/callgraph/schema.sql
 mkdir output
 
 $THEDEAD/calcalive.py $DBDIR/graph.sqlite &&
-./groupdead.py $DBDIR/graph.sqlite &&
-./presentdead.py $DBDIR/graph.sqlite "/path/to/strip/from/locations/" output "node search URL prefix" "node search URL postfix"
+$THEDEAD/groupdead.py $DBDIR/graph.sqlite &&
+$THEDEAD/presentdead.py $DBDIR/graph.sqlite "/path/to/strip/from/locations/" output "node search URL prefix" "node search URL postfix"
 
 # copy static html stuff
 cp -R $THEDEAD/media output
